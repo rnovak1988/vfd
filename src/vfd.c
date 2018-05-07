@@ -58,6 +58,22 @@ int32_t main (void) {
   return EXIT_FAILURE;
 }
 
+int32_t _cleanup_ (int32_t pi_handle) {
+  if (pi_handle >= 0) {
+    int pin_index = 0;
+    
+    while (pin_index < NUM_PINS) {
+       set_PWM_dutycycle(pi_handle, PIN_OUT[pin_index++], 0);
+    }
+    
+    pigpio_stop(pi_handle);
+    signal(SIGINT, SIG_DFL);
+
+    return EXIT_SUCCESS;
+  }
+  return EINVAL;
+}
+
 int32_t _is_it_time_yet_ (const struct timespec* then, const struct timespec* now) {
   if (then != NULL && now != NULL) {
     return (now->tv_sec >= then->tv_sec) && (now->tv_nsec > then->tv_nsec);
@@ -89,7 +105,6 @@ int32_t _run_ (int32_t pi_handle) {
   struct timespec current, next;
 
 
-
   if (pi_handle >= 0) {
     
     /* Basic initialization. Set mode, make sure the pin is pulled
@@ -107,6 +122,8 @@ int32_t _run_ (int32_t pi_handle) {
 
     _sentinal_ = (int32_t*) malloc (sizeof(int32_t));
     if (_sentinal_ != NULL) {
+
+      signal(SIGINT, _handler_);
 
       *_sentinal_ = 1;
       
@@ -171,6 +188,7 @@ int32_t _run_ (int32_t pi_handle) {
                   break;
             }
 
+            phase = (phase + 1) % 3;
 
 
           }
@@ -192,4 +210,9 @@ int32_t _run_ (int32_t pi_handle) {
   return EINVAL;
 }
 
+
+void _handler_ (int32_t signum) {
+  *_sentinal_ = 0;
+  signal(signum, SIG_DFL);
+}
 
