@@ -3,37 +3,19 @@
 
 #include "base.h"
 
-typedef int32_t pi_t; // Handle to a Raspberry Pi via the pigpiod_if2 mechanism
+#define RED_positive 0
+#define RED_negative 1
+#define BLUE_positive 2
+#define BLUE_negative 3
+#define GREEN_positive 4
+#define GREEN_negative 5
 
+typedef int32_t rpi_t;
 
-  // Phase States, these correspond to
-  // a modified three phase setup, wherein
-  // one poll is off while the other two are
-  // onn. This allows for us to not have
-  // magnets opposing the direction of travel
-
-typedef enum PI_PHASE_STATE {
-  RED_POS_BLUE_NEG_GREEN_OFF,
-  RED_NEG_BLUE_OFF_GREEN_POS,
-  RED_OFF_BLUE_POS_GREEN_NEG
-} phase_t;
-
-
-  // Structure representing the Output layout
-  // with regard to which pin (numbered via the 
-  // schematic for GPIO pins), corresponds to
-  // which logical switch
-
-typedef struct PINS_T {
-  uint16_t RED_p; // Positive Red
-  uint16_t RED_n; // Negative Red
-
-  uint16_t BLUE_p; // Positive Blue
-  uint16_t BLUE_n; // Negative Blue
-
-  uint16_t GREEN_p; // Positive Green
-  uint16_t GREEN_n; // Negative Green
-} pin_def_t;
+typedef struct CONFIGURATION_T {
+  int32_t pin_out[6];
+  int32_t frequency_hz;
+} cfg_t;
 
 
 

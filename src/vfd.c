@@ -2,59 +2,73 @@
 #include <pigpio/pigpiod_if2.h>
 
 #include "base.h"
-#include "hardware.h"
 
-  // Boolean flag. Indicates whether or not
-  // to continue in the main loop
-static int32_t* __cont__ = NULL; 
-static pi_t* __pihnd__ = NULL;
+#define USEC_PER_SECOND   1000000
 
-  // When we get interrupted, we set the
-  // value of the global variable __cont__ to
-  // zero, which indicates that the program should 
-  // stop running and exit. we then return the signal
-  // back to it's default function, and return execution
-  // to the normal program
-void __interrupted__ (int signum) {
-  
-  if (__cont__ != NULL) {
-    *(__cont__) = 0;
-  }
+#define PWM_FREQUENCY     4000
 
-  signal(signum, SIG_DFL);
-}
+#define DUTY_CYCLE_RANGE  100
+#define DUTY_CYCLE_ON     50
+#define DUTY_CYLE_OFF     0
 
-void __cleanup__();
+#define BASE_FREQUENCY    60
+
+static const int32_t PIN_OUT[] = { 14, 15, 23, 24, 25, 8 };
+static const size_t  NUM_PINS  = sizeof(PIN_OUT) / sizeof(int32_t);
+
+static int32_t *_sentinal_;
+
+  // Forward Declarations
+void    _handler_   (int32_t);
+int32_t _run_       (int32_t);
+int32_t _cleanup_   (int32_t);
 
 
-int main (void) {
+int32_t main (void) {
 
-  pi_t pihnd = pigpio_start(NULL, NULL);
-  
-  if (pihnd >= 0) {
-    __pihnd__ = &pihnd;
+  int32_t pi = pigpio_start(NULL, NULL);
+
+  if (pi >= 0) {
     
+    int32_t result = _run_(pi);
 
+    if (result != EXIT_SUCCESS) {
+      fprintf(stderr, "%s\n", strerror(result));
+    } else {
+      result = _cleanup_(pi);
+    }
 
-    
+    return result;
 
-    
-    __cleanup__();
-    return EXIT_SUCCESS;
-
-  } else if (errno) {
-    fprintf(stderr, "%s\n", strerror(errno));
+  } else {
+    fprintf(stderr, "%s\n", pigpio_error(pi));
   }
 
   return EXIT_FAILURE;
 }
 
 
-void __cleanup__ () {
-  if (__pihnd__ != NULL && *(__pihnd__) >= 0) {
-    pigpio_stop(*(__pihnd__));
+int32_t _run_ (int32_t pi_handle) {
+  
+  int pin_index;
+
+  if (pi_handle >= 0) {
+    /* Basic initialization. Set mode, make sure the pin is pulled
+        low while its off, and set base PWM parameters */
+    for (pin_index = 0; pin_index < NUM_PINS; pin_index++) {
+      
+      set_mode          (pi_handle, PIN_OUT[pin_index], PI_OUTPUT);
+      set_pull_up_down  (pi_handle, PIN_OUT[pin_index], PI_PUD_DOWN);
+
+      set_PWM_frequency (pi_handle, PIN_OUT[pin_index], PWM_FREQUENCY);
+      set_PWM_range     (pi_handle, PIN_OUT[pin_index], DUTY_CYCLE_RANGE);
+      set_PWM_dutycycle (pi_handle, PIN_OUT[pin_index], DUTY_CYCLE_OFF);
+
+    }
+  
   }
 
-    // always return signal back to default action
-  signal(SIGINT, SIG_DFL);
+
+  return EINVAL;
 }
+
